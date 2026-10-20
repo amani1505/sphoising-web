@@ -1,0 +1,178 @@
+/*
+ * Visual effects: glass surfaces, ambient aurora, cursor spotlight, scroll reveal, marquee
+ * and animated borders. Every moving effect is disabled under prefers-reduced-motion.
+ * Colours come from the tokens in globals.css.
+ */
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@theme {
+  --animate-drift-a: drift-a 28s ease-in-out infinite alternate;
+  --animate-drift-b: drift-b 34s ease-in-out infinite alternate;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-word-in: word-in 550ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-border-spin: border-spin 6s linear infinite;
+  --animate-pop: pop 500ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
+
+  @keyframes drift-a {
+    to {
+      transform: translate3d(12vw, 8vh, 0) scale(1.15);
+    }
+  }
+  @keyframes drift-b {
+    to {
+      transform: translate3d(-10vw, -6vh, 0) scale(0.9);
+    }
+  }
+  @keyframes float {
+    50% {
+      transform: translateY(-0.6rem);
+    }
+  }
+  @keyframes word-in {
+    from {
+      opacity: 0;
+      transform: translateY(45%);
+    }
+  }
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+  }
+  @keyframes border-spin {
+    to {
+      --border-angle: 360deg;
+    }
+  }
+}
+
+/* Frosted card: translucent fill, blur, hairline light border and an inner top highlight. */
+@utility glass {
+  background: var(--glass-fill);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    0 18px 50px -20px var(--glass-shadow);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+}
+
+/* Denser glass for text sitting on top of photos. */
+@utility glass-strong {
+  background-color: color-mix(in oklab, var(--surface) 78%, transparent);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-highlight),
+    0 30px 80px -30px rgb(0 9 43 / 0.45);
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+}
+
+/* Cursor-following glow. Position comes from --spot-x / --spot-y set by useSpotlight. */
+@utility spotlight {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: var(--spot-opacity, 0);
+    background: radial-gradient(
+      420px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      var(--spot-color),
+      transparent 60%
+    );
+    transition: opacity 300ms ease;
+  }
+}
+
+/* Cards fade and lift in as they scroll into view (native scroll-driven animation, no JS). */
+@utility reveal {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 28%;
+    }
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(2.5rem) scale(0.97);
+  }
+}
+
+/* Animated gradient ring. Put on a wrapper with padding equal to the ring width. */
+@utility gradient-ring {
+  background: conic-gradient(
+    from var(--border-angle),
+    var(--color-sky),
+    var(--color-signal),
+    var(--color-periwinkle),
+    var(--color-sky)
+  );
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: var(--animate-border-spin);
+  }
+}
+
+/* Gradient-filled text in brand blues. */
+@utility text-gradient {
+  background: linear-gradient(100deg, var(--color-deep), var(--color-signal) 45%, var(--color-sky));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+
+  [data-theme="dark"] & {
+    background: linear-gradient(100deg, var(--color-periwinkle), var(--color-sky));
+    background-clip: text;
+    -webkit-background-clip: text;
+  }
+}
+
+/* Fades the ends of a horizontally scrolling strip. */
+@utility edge-fade {
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+/* Film-grain overlay for the ambient background. */
+@utility grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/*
+ * Client logos are transparent PNGs. In dark mode they become uniform white marks on glass
+ * (brightness(0) flattens them to black, invert turns that white); hover brings them to full strength.
+ */
+[data-theme="dark"] .client-logo-tile {
+  background: var(--glass-fill);
+  border-color: var(--glass-border);
+}
+
+[data-theme="dark"] .client-logo-img {
+  filter: brightness(0) invert(1);
+  opacity: 0.6;
+}
+
+[data-theme="dark"] .client-logo-tile:hover .client-logo-img {
+  opacity: 1;
+}
