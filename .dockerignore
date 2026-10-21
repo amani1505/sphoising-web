@@ -1,13 +1,10 @@
 node_modules
 .next
 .git
-.gitignore
 .env*
-!.env.example
-tsconfig.tsbuildinfo
+!.env.production
+*.tsbuildinfo
 Dockerfile
 docker-compose.yml
 .dockerignore
-README.md
-AGENTS.md
-CLAUDE.md
+*.md
