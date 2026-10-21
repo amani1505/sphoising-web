@@ -33,6 +33,11 @@ COPY . .
 # be supplied as build args (not runtime env). Validated by src/config/env.ts.
 ARG NEXT_PUBLIC_SITE_URL
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
+# Fail fast with a readable message instead of a ZodError deep in `next build`.
+RUN case "$NEXT_PUBLIC_SITE_URL" in \
+      http://*|https://*) echo "NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL" ;; \
+      *) echo "ERROR: build arg NEXT_PUBLIC_SITE_URL must be an absolute URL without quotes (e.g. https://example.com). Received: [$NEXT_PUBLIC_SITE_URL]" >&2; exit 1 ;; \
+    esac
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 RUN pnpm run build
