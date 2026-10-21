@@ -1,0 +1,29 @@
+# Single-service deployment for SB Housing.
+#   docker compose up -d --build
+# The app listens on PORT (default 3010) inside the container.
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sb-housing:latest
+    container_name: sb-housing
+    restart: unless-stopped
+    ports:
+      - "3010:3010"
+    environment:
+      NODE_ENV: production
+      PORT: "3010"
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: "1"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:3010',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
