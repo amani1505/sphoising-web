@@ -7,8 +7,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: sb-housing:latest
-    container_name: sb-housing
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://sp-housing.romanixtz.com/}
+    image: sp-housing:latest
+    container_name: sp-housing
     restart: unless-stopped
     ports:
       - "3010:3010"

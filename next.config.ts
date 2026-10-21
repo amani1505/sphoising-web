@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Emits `.next/standalone/server.js`, which the Dockerfile's runtime stage serves.
+  output: "standalone",
   experimental: {
     agentFeedback: true,
   },

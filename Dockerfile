@@ -7,24 +7,35 @@
 # ──────────────────────────────────────────────────────────────────────────
 
 ARG NODE_VERSION=22-alpine
+ARG PNPM_VERSION=10.12.1
 
-# 1) Install production-grade dependencies from the lockfile.
-FROM node:${NODE_VERSION} AS deps
+# 0) Shared base with pnpm (via corepack) — the project's package manager.
+FROM node:${NODE_VERSION} AS base
+ARG PNPM_VERSION
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+
+# 1) Install dependencies from the lockfile.
+FROM base AS deps
 # libc6-compat helps some native deps run on Alpine.
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # 2) Build the app. Requires network access to fetch the Google fonts that
 #    `next/font/google` downloads at build time (Cormorant Garamond + Inter).
-FROM node:${NODE_VERSION} AS builder
+FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# NEXT_PUBLIC_* values are inlined into the bundle at build time, so they must
+# be supplied as build args (not runtime env). Validated by src/config/env.ts.
+ARG NEXT_PUBLIC_SITE_URL
+ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-RUN npm run build
+RUN pnpm run build
 
 # 3) Minimal runtime — only the standalone server, static assets and public/.
 FROM node:${NODE_VERSION} AS runner
@@ -50,7 +61,7 @@ EXPOSE 3010
 
 # Lightweight container healthcheck against the running server.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||3000),r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+  CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||3010),r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
 
 # `server.js` is emitted by Next's standalone output.
 CMD ["node", "server.js"]
